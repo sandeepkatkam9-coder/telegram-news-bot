@@ -1,20 +1,25 @@
-import os
-import requests
+from app.news_fetcher import fetch_news
+from app.asset_filter import detect_assets
+from app.event_classifier import classify_article
 
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-CHAT_ID = os.getenv("CHAT_ID")
+news = fetch_news()
 
-print("BOT_TOKEN exists:", BOT_TOKEN is not None)
-print("CHAT_ID:", CHAT_ID)
+print(f"\nArticles Found: {len(news)}\n")
 
-url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+for article in news:
 
-payload = {
-    "chat_id": CHAT_ID,
-    "text": "✅ Test Message from GitHub Actions!\n\nIf you received this, your Telegram bot is working."
-}
+    assets = detect_assets(article)
 
-response = requests.post(url, data=payload)
+    if not assets:
+        continue
 
-print("Status Code:", response.status_code)
-print("Response:", response.text)
+    categories = classify_article(article)
+
+    print("=" * 80)
+    print(article["title"])
+    print("Assets     :", ", ".join(assets))
+
+    if categories:
+        print("Categories :", ", ".join(categories))
+    else:
+        print("Categories : General Market News")
