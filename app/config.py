@@ -1,4 +1,28 @@
+import os
+from dotenv import load_dotenv
+
+# Load .env file
+load_dotenv()
+
+# ==========================================
+# Telegram
+# ==========================================
+
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+CHANNEL_ID = os.getenv("CHANNEL_ID")
+
+# ==========================================
+# Notification Rules
+# ==========================================
+
+MIN_IMPORTANCE = 90
+
+# ==========================================
+# Tracked Assets
+# ==========================================
+
 TRACKED_ASSETS = [
+
     # Precious Metals
     "gold",
     "xau",
@@ -17,7 +41,7 @@ TRACKED_ASSETS = [
     "bitcoin",
     "btc",
 
-    # Currencies
+    # Forex
     "usd",
     "dollar",
     "eur",
