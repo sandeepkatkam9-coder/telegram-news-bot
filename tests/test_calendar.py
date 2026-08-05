@@ -14,6 +14,9 @@ from app.calendar.models.event import CalendarEvent, ImpactLevel
 from app.calendar.official_sources.base import OfficialCalendarSource
 from app.calendar.official_sources.bls import BlsSource
 from app.calendar.official_sources.bea import BeaSource
+from app.calendar.official_sources.eia import EiaSource
+from app.calendar.official_sources.fed import FedSource
+from app.calendar.cot import parse_legacy_csv
 from app.calendar.official_sources.catalog import OFFICIAL_SCHEDULE_ENDPOINTS, default_sources
 from app.calendar.scheduler.release import ReleaseEngine, ReleaseValues
 from app.calendar.scheduler.scheduler import CalendarScheduler
@@ -275,6 +278,25 @@ class BeaSourceTests(unittest.TestCase):
         )
         events = BeaSource().parse_schedule(html)
         self.assertEqual([item.title for item in events], ["GDP", "PCE", "Core PCE"])
+
+
+class FedEiaCotTests(unittest.TestCase):
+    def test_fed_parser_creates_decision_and_press_events(self) -> None:
+        events = FedSource().parse_schedule("2026 FOMC Meetings January 27-28 March 17-18")
+        self.assertEqual(len(events), 4)
+        self.assertEqual(events[0].title, "FOMC Interest Rate Decision")
+
+    def test_eia_parser_creates_weekly_inventory_event(self) -> None:
+        event = EiaSource().parse_schedule("Next Release Date: July 29, 2026")[0]
+        self.assertEqual(event.title, "Weekly Crude Oil Inventories")
+
+    def test_eia_release_parser_extracts_official_change(self) -> None:
+        self.assertEqual(EiaSource().parse_release("commercial crude oil inventories increased by 3.1 million barrels"), ("+3.1M", None))
+
+    def test_cftc_legacy_parser_extracts_required_position_fields(self) -> None:
+        csv_data = "Market_and_Exchange_Names,Open_Interest_All,Commercial_Positions_Long_All,Commercial_Positions_Short_All,Noncommercial_Positions_Long_All,Noncommercial_Positions_Short_All,Nonrept_Positions_Long_All,Nonrept_Positions_Short_All\nGOLD - COMMODITY EXCHANGE INC.,100,20,30,40,50,10,20\n"
+        position = parse_legacy_csv(csv_data)[0]
+        self.assertEqual((position.market, position.open_interest, position.retail_short), ("Gold", 100, 20))
 
 
 if __name__ == "__main__":

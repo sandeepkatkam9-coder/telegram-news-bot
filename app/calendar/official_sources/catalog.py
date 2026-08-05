@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from app.calendar.official_sources.base import CalendarSource
 from app.calendar.official_sources.bea import BeaSource
+from app.calendar.official_sources.eia import EiaSource
+from app.calendar.official_sources.fed import FedSource
 from app.calendar.official_sources.bls import BlsSource
 
 
@@ -32,4 +34,4 @@ def default_sources() -> tuple[CalendarSource, ...]:
     BLS is the only active integration. All other URLs are an allow-list for
     future source-specific implementations and are not downloaded.
     """
-    return (BlsSource(), BeaSource())
+    return (BlsSource(), BeaSource(), FedSource(), EiaSource())
