@@ -1,4 +1,5 @@
 import asyncio
+from datetime import datetime
 
 from app.news_fetcher import fetch_news
 from app.event_recognizer import recognize_event
@@ -7,15 +8,30 @@ from app.impact_engine import get_market_impact
 from app.formatter import format_message
 from app.telegram_sender import send_telegram
 from app.storage import already_sent, mark_as_sent
+from app.calendar.service import CalendarNotificationService
+from app.calendar.scheduler.scheduler import CalendarScheduler
+from app.calendar.storage.repository import EventRepository
+
+
+async def run_calendar() -> None:
+    """Run one calendar scheduler tick before the existing news workflow."""
+    service = CalendarNotificationService(
+        CalendarScheduler(EventRepository()),
+        send_telegram,
+    )
+    await service.run_once(datetime.now().astimezone())
 
 
 def main():
+
+    asyncio.run(run_calendar())
 
     news = fetch_news()
 
     print("\n" + "=" * 80)
     print("           AUTO TRADE-HUB MARKET INTELLIGENCE")
     print("=" * 80)
+
 
     total_articles = len(news)
     important_articles = 0

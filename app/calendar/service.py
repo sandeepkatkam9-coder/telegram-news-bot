@@ -7,6 +7,7 @@ from datetime import datetime
 
 from app.calendar.formatter.daily import DailyScheduleFormatter
 from app.calendar.scheduler.scheduler import CalendarScheduler, IST
+from app.calendar.storage.ledger import DeliveryLedger
 
 SendMessage = Callable[[str], Awaitable[None]]
 
@@ -14,10 +15,16 @@ SendMessage = Callable[[str], Awaitable[None]]
 class CalendarNotificationService:
     """Dispatches messages due during one scheduler tick."""
 
-    def __init__(self, scheduler: CalendarScheduler, send_message: SendMessage) -> None:
+    def __init__(
+        self,
+        scheduler: CalendarScheduler,
+        send_message: SendMessage,
+        ledger: DeliveryLedger | None = None,
+    ) -> None:
         self._scheduler = scheduler
         self._send_message = send_message
         self._formatter = DailyScheduleFormatter()
+        self._ledger = ledger or DeliveryLedger()
 
     async def run_once(
         self,
@@ -30,12 +37,20 @@ class CalendarNotificationService:
         if local_now.hour == 9 and local_now.minute == 0:
             message = self._scheduler.daily_message(now)
             if message:
-                await self._send_message(message)
-                sent += 1
+                sent += await self._deliver(f"daily:{local_now.date().isoformat()}", message)
         for event in self._scheduler.due_reminders(now):
-            await self._send_message(self._formatter.reminder(event))
-            sent += 1
+            sent += await self._deliver(
+                f"reminder:{event.event_id}",
+                self._formatter.reminder(event),
+            )
         if cot_positions is not None and self._scheduler.weekly_cot_due(now):
-            await self._send_message(self._formatter.cot_report(cot_positions))
-            sent += 1
+            week = local_now.strftime("%G-W%V")
+            sent += await self._deliver(f"cot:{week}", self._formatter.cot_report(cot_positions))
         return sent
+
+    async def _deliver(self, key: str, message: str) -> int:
+        if self._ledger.contains(key):
+            return 0
+        await self._send_message(message)
+        self._ledger.record(key)
+        return 1

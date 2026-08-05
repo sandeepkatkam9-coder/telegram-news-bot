@@ -17,6 +17,7 @@ from app.calendar.official_sources.catalog import OFFICIAL_SCHEDULE_ENDPOINTS, d
 from app.calendar.scheduler.release import ReleaseEngine, ReleaseValues
 from app.calendar.scheduler.scheduler import CalendarScheduler
 from app.calendar.service import CalendarNotificationService
+from app.calendar.storage.ledger import DeliveryLedger
 from app.calendar.storage.repository import EventRepository
 from app.calendar.updater.updater import CalendarUpdater
 
@@ -116,10 +117,30 @@ class FormatterAndSchedulerTests(unittest.TestCase):
             async def send(message: str) -> None:
                 messages.append(message)
 
-            service = CalendarNotificationService(CalendarScheduler(repository), send)
+            service = CalendarNotificationService(
+                CalendarScheduler(repository),
+                send,
+                DeliveryLedger(Path(directory) / "ledger.json"),
+            )
             count = asyncio.run(service.run_once(datetime(2026, 1, 2, 3, 30, tzinfo=UTC)))
             self.assertEqual(count, 1)
             self.assertIn("DAILY MARKET SCHEDULE", messages[0])
+
+    def test_delivery_ledger_prevents_duplicate_daily_messages(self) -> None:
+        with temporary_directory() as directory:
+            repository = EventRepository(Path(directory) / "events.json")
+            repository.save([], source_count=0)
+            ledger = DeliveryLedger(Path(directory) / "ledger.json")
+            messages: list[str] = []
+
+            async def send(message: str) -> None:
+                messages.append(message)
+
+            service = CalendarNotificationService(CalendarScheduler(repository), send, ledger)
+            now = datetime(2026, 1, 2, 3, 30, tzinfo=UTC)
+            self.assertEqual(asyncio.run(service.run_once(now)), 1)
+            self.assertEqual(asyncio.run(service.run_once(now)), 0)
+            self.assertEqual(len(messages), 1)
 
 
 class _Response:
