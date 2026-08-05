@@ -17,6 +17,7 @@ from app.calendar.official_sources.bea import BeaSource
 from app.calendar.official_sources.eia import EiaSource
 from app.calendar.official_sources.fed import FedSource
 from app.calendar.cot import parse_legacy_csv
+from app.calendar.cftc import CftcCotSource, telegram_report
 from app.calendar.official_sources.catalog import OFFICIAL_SCHEDULE_ENDPOINTS, default_sources
 from app.calendar.scheduler.release import ReleaseEngine, ReleaseValues
 from app.calendar.scheduler.scheduler import CalendarScheduler
@@ -297,6 +298,12 @@ class FedEiaCotTests(unittest.TestCase):
         csv_data = "Market_and_Exchange_Names,Open_Interest_All,Commercial_Positions_Long_All,Commercial_Positions_Short_All,Noncommercial_Positions_Long_All,Noncommercial_Positions_Short_All,Nonrept_Positions_Long_All,Nonrept_Positions_Short_All\nGOLD - COMMODITY EXCHANGE INC.,100,20,30,40,50,10,20\n"
         position = parse_legacy_csv(csv_data)[0]
         self.assertEqual((position.market, position.open_interest, position.retail_short), ("Gold", 100, 20))
+
+    def test_cftc_telegram_report_has_official_fields_only(self) -> None:
+        csv_data = "Market_and_Exchange_Names,Open_Interest_All,Commercial_Positions_Long_All,Commercial_Positions_Short_All,Noncommercial_Positions_Long_All,Noncommercial_Positions_Short_All,Nonrept_Positions_Long_All,Nonrept_Positions_Short_All\nGOLD - COMMODITY EXCHANGE INC.,100,20,30,40,50,10,20\n"
+        report = telegram_report(parse_legacy_csv(csv_data))
+        self.assertIn("Open Interest: 100", report)
+        self.assertIn("Retail / Non-reportable", report)
 
 
 if __name__ == "__main__":
