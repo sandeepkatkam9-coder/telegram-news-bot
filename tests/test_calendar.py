@@ -13,6 +13,7 @@ from app.calendar.formatter.daily import DailyScheduleFormatter
 from app.calendar.models.event import CalendarEvent, ImpactLevel
 from app.calendar.official_sources.base import OfficialCalendarSource
 from app.calendar.official_sources.bls import BlsSource
+from app.calendar.official_sources.bea import BeaSource
 from app.calendar.official_sources.catalog import OFFICIAL_SCHEDULE_ENDPOINTS, default_sources
 from app.calendar.scheduler.release import ReleaseEngine, ReleaseValues
 from app.calendar.scheduler.scheduler import CalendarScheduler
@@ -263,6 +264,17 @@ class BlsSourceTests(unittest.TestCase):
             result = CalendarUpdater(repository, (BlsSource(sleep=lambda _: None),)).update(_BlsClient(failures=3))
             self.assertTrue(result.failures)
             self.assertEqual(repository.load(), [event()])
+
+
+class BeaSourceTests(unittest.TestCase):
+    def test_schedule_parser_normalizes_gdp_and_pce(self) -> None:
+        html = (
+            "<h1>Release Schedule Year 2026</h1> "
+            "July 30 8:30 AM GDP (Advance Estimate), 2nd Quarter 2026 "
+            "July 30 8:30 AM Personal Income and Outlays, June 2026"
+        )
+        events = BeaSource().parse_schedule(html)
+        self.assertEqual([item.title for item in events], ["GDP", "PCE", "Core PCE"])
 
 
 if __name__ == "__main__":
