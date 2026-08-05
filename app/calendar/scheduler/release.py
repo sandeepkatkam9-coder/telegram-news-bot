@@ -13,7 +13,7 @@ from app.calendar.models.event import CalendarEvent
 class ReleaseValues:
     """Actual and previous values published by an official source."""
 
-    actual: str
+    actual: str | None
     previous: str | None = None
 
 
@@ -38,6 +38,8 @@ class ReleaseEngine:
     ) -> tuple[CalendarEvent, str]:
         """Fetch official values, then prepare the release result for Telegram."""
         values = fetcher.fetch_release(event)
+        if values.actual is None:
+            raise ValueError(f"Official actual value unavailable for {event.event_id}")
         return self.apply(event, values.actual, values.previous)
 
     @staticmethod

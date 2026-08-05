@@ -25,6 +25,14 @@ class HttpClient(Protocol):
     def get(self, url: str, *, timeout: float) -> Response: ...
 
 
+class CalendarSource(Protocol):
+    """Common contract for calendar sources using their native media type."""
+
+    name: str
+
+    def fetch(self, client: object | None = None) -> list[CalendarEvent]: ...
+
+
 class SourceDownloadError(RuntimeError):
     """An official publisher did not provide a usable schedule response."""
 

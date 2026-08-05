@@ -7,7 +7,8 @@ no third-party calendar is scraped or used as a fallback.
 
 from __future__ import annotations
 
-from app.calendar.official_sources.base import OfficialCalendarSource
+from app.calendar.official_sources.base import CalendarSource
+from app.calendar.official_sources.bls import BlsSource
 
 
 OFFICIAL_SCHEDULE_ENDPOINTS: dict[str, str] = {
@@ -24,11 +25,10 @@ OFFICIAL_SCHEDULE_ENDPOINTS: dict[str, str] = {
 }
 
 
-def default_sources() -> tuple[OfficialCalendarSource, ...]:
+def default_sources() -> tuple[CalendarSource, ...]:
     """Return enabled official structured-feed adapters.
 
-    The sites above remain the allow-list.  Publisher-specific JSON/ICS adapters
-    are registered here when their public structured feeds are available; this
-    prevents silently converting a web page into an unsupported scraper.
+    BLS is the only active integration. All other URLs are an allow-list for
+    future source-specific implementations and are not downloaded.
     """
-    return ()
+    return (BlsSource(),)

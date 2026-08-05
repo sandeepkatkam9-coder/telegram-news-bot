@@ -6,8 +6,8 @@ from dataclasses import dataclass
 
 from app.calendar.models.event import CalendarEvent
 from app.calendar.official_sources.base import (
+    CalendarSource,
     HttpClient,
-    OfficialCalendarSource,
     SourceDownloadError,
 )
 from app.calendar.storage.repository import EventRepository
@@ -25,7 +25,7 @@ class UpdateResult:
 class CalendarUpdater:
     """Refreshes the local store from explicit official-source adapters."""
 
-    def __init__(self, repository: EventRepository, sources: tuple[OfficialCalendarSource, ...]) -> None:
+    def __init__(self, repository: EventRepository, sources: tuple[CalendarSource, ...]) -> None:
         self._repository = repository
         self._sources = sources
 
