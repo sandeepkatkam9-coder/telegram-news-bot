@@ -2,10 +2,25 @@
 
 from __future__ import annotations
 
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from decimal import Decimal, InvalidOperation
+from typing import Protocol
 
 from app.calendar.models.event import CalendarEvent
+
+
+@dataclass(frozen=True, slots=True)
+class ReleaseValues:
+    """Actual and previous values published by an official source."""
+
+    actual: str
+    previous: str | None = None
+
+
+class OfficialReleaseFetcher(Protocol):
+    """Source-specific official release reader."""
+
+    def fetch_release(self, event: CalendarEvent) -> ReleaseValues: ...
 
 
 class ReleaseEngine:
@@ -15,6 +30,15 @@ class ReleaseEngine:
         """Apply published values and classify actual versus forecast."""
         updated = replace(event, actual=actual, previous=previous or event.previous)
         return updated, self.determine_result(actual, event.forecast)
+
+    def fetch_and_apply(
+        self,
+        event: CalendarEvent,
+        fetcher: OfficialReleaseFetcher,
+    ) -> tuple[CalendarEvent, str]:
+        """Fetch official values, then prepare the release result for Telegram."""
+        values = fetcher.fetch_release(event)
+        return self.apply(event, values.actual, values.previous)
 
     @staticmethod
     def determine_result(actual: str, forecast: str | None) -> str:

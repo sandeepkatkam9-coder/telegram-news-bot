@@ -13,7 +13,7 @@ from app.calendar.formatter.daily import DailyScheduleFormatter
 from app.calendar.models.event import CalendarEvent, ImpactLevel
 from app.calendar.official_sources.base import OfficialCalendarSource
 from app.calendar.official_sources.catalog import OFFICIAL_SCHEDULE_ENDPOINTS, default_sources
-from app.calendar.scheduler.release import ReleaseEngine
+from app.calendar.scheduler.release import ReleaseEngine, ReleaseValues
 from app.calendar.scheduler.scheduler import CalendarScheduler
 from app.calendar.service import CalendarNotificationService
 from app.calendar.storage.repository import EventRepository
@@ -93,6 +93,18 @@ class FormatterAndSchedulerTests(unittest.TestCase):
         self.assertEqual(result, "Actual above forecast.")
         report = DailyScheduleFormatter().cot_report({"Gold": "Net long"})
         self.assertIn("Bitcoin: Not published", report)
+
+    def test_release_engine_fetches_official_values(self) -> None:
+        class Fetcher:
+            def fetch_release(self, calendar_event: CalendarEvent) -> ReleaseValues:
+                self.event_id = calendar_event.event_id
+                return ReleaseValues(actual="2.1", previous="2.0")
+
+        fetcher = Fetcher()
+        released, result = ReleaseEngine().fetch_and_apply(event(), fetcher)
+        self.assertEqual(fetcher.event_id, "bls-cpi-2026-01")
+        self.assertEqual(released.previous, "2.0")
+        self.assertEqual(result, "Actual below forecast.")
 
     def test_notification_service_dispatches_daily_message_at_nine_ist(self) -> None:
         with temporary_directory() as directory:
